@@ -3,11 +3,13 @@
 
 #include <string>
 #include <stdexcept>
+#include <iostream>
+#include <fstream>
 #include "VR32.h"
 #include "utils.h"
 
-//const uint32_t passed = 0xAAAAAAAA;
-//const uint32_t passed_address = -1;
+const uint32_t passed = 0xAAAAAAAA;
+const uint32_t passed_address = -1;
 //const uint32_t typical_length = 0x20000;
 
 class CodeTest {

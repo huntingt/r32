@@ -6,21 +6,87 @@
  * then passes if the "passed" value is written into the
  * "passed_address" location
  */
-
 CodeTest::CodeTest(std::string file, uint32_t base_address, uint32_t length) {
     this->base_address = base_address;
     this->length = length;
     
     this->top = new VR32();
     this->memory = new uint32_t[length];
-}
 
-bool CodeTest::run(int timeout) {
-    for (int i = 0; i < timeout; i++) {
-        //TODO: implement simulation logic
+    std::ifstream program;
+    program.open(file);
+
+    int index = 0;
+    while(!program.eof())
+    {
+        if (index >= length) {
+            throw std::runtime_error(std::string("program too large for memory @") + std::to_string(index));
+        }
+        
+        uint32_t word;
+        program.read(reinterpret_cast<char*>(&word), sizeof(uint32_t));
+        this->memory[index] = word;
+        index += 1;
     }
 
-    throw std::runtime_error("timed out after " + std::to_string(timeout) + " cycles :/");
+    program.close();
+}
+
+/*
+ * Runs the test with a given timeout
+ * @param: timeout the maximum number of cycles that the test
+ *      can run before timing out
+ * @return: whether or not the test passed
+ */
+bool CodeTest::run(int timeout) {
+    utils::reset(top);
+    top->m_ready = 1;
+
+    //from slave
+    top->s_data = 0;
+    top->s_valid = 0;
+
+    //TODO:Implement queue
+    for (int i = 0; i < timeout; i++) {
+        // if the output was consumed last cycle
+        if (top->s_valid && top->s_ready) {
+            top->s_valid = false;
+        }
+
+        // check for input
+        if (top->m_valid && top->m_ready) {
+            if(top->m_address == passed_address && top->m_data == passed) {
+                return true;
+            }
+            
+            top->s_valid = true;
+            
+            if (top->m_address % 4 != 0) {
+                std::cout << "unaligned addressing not supported " + std::to_string(top->m_address) << std::endl;
+                return false;
+            }
+
+            int index = (top->m_address - base_address) / 4;
+            if (index < 0 || index >= length) {
+                std::cout << "memory out of bounds " + std::to_string(top->m_address) << std::endl;
+                return false;
+            }
+
+            if (top->m_write) {
+                memory[index] = top->m_data;
+            } else {    
+                top->s_data = memory[index];
+            }
+        }
+
+        // if the register can't hold another value, then wait
+        top->m_ready = !top->s_valid;
+        
+        utils::clock(top, 1);
+    }
+
+    std::cout << "timed out after " + std::to_string(timeout) + " cycles :/";
+    return false;
 }
 
 CodeTest::~CodeTest() {
