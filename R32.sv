@@ -31,7 +31,7 @@ module R32(
 
     always_ff @(posedge clock) begin
         if (reset) begin
-            m_address <= 3;
+            m_address <= -1;
             m_data <= 0'hAA_AA_AA_AA;
             m_valid <= 1;
             m_write <= 1;

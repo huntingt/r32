@@ -38,7 +38,7 @@ CodeTest::CodeTest(std::string file, uint32_t base_address, uint32_t length) {
  *      can run before timing out
  * @return: whether or not the test passed
  */
-bool CodeTest::run(int timeout) {
+std::tuple<bool, std::string> CodeTest::run(int timeout) {
     utils::reset(top);
     top->m_ready = 1;
 
@@ -55,21 +55,26 @@ bool CodeTest::run(int timeout) {
 
         // check for input
         if (top->m_valid && top->m_ready) {
-            if(top->m_address == passed_address && top->m_data == passed) {
-                return true;
+            if(top->m_address == passed_address) {
+                if (top->m_data == passed) {
+                    return std::make_tuple(true, "passed");
+                } else {
+                    return std::make_tuple(false, \
+                        "failed " + std::to_string(top->m_data) + " code tests");
+                }
             }
             
             top->s_valid = true;
             
             if (top->m_address % 4 != 0) {
-                std::cout << "unaligned addressing not supported " + std::to_string(top->m_address) << std::endl;
-                return false;
+                return std::make_tuple(false, \
+                    "unaligned addressing not supported " + std::to_string(top->m_address));
             }
 
             int index = (top->m_address - base_address) / 4;
             if (index < 0 || index >= length) {
-                std::cout << "memory out of bounds " + std::to_string(top->m_address) << std::endl;
-                return false;
+                return std::make_tuple(false, \
+                    "memory out of bounds " + std::to_string(top->m_address));
             }
 
             if (top->m_write) {
@@ -85,8 +90,8 @@ bool CodeTest::run(int timeout) {
         utils::clock(top, 1);
     }
 
-    std::cout << "timed out after " + std::to_string(timeout) + " cycles :/";
-    return false;
+    return std::make_tuple(false, \
+            "timed out after " + std::to_string(timeout) + " cycles");
 }
 
 CodeTest::~CodeTest() {

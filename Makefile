@@ -4,7 +4,7 @@ SV_DIR=obj_dir
 INCLUDES=main.cpp code_test.cpp
 
 test: FORCE
-	verilator -Wall --cc R32.sv --exe $(INCLUDES)
+	verilator -Wall --cc R32.sv --exe $(INCLUDES) -CFLAGS "-std=c++17"
 	make -j -C $(SV_DIR) -f VR32.mk VR32
 	make -C test
 	./$(SV_DIR)/VR32
