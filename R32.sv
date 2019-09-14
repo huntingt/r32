@@ -1,5 +1,5 @@
 /*
- * top level module for processor
+ * convert from the interfaces
  */
 module R32(
     clock,
@@ -29,16 +29,21 @@ module R32(
     output logic        s_ready;
     input               s_valid;
 
-    always_ff @(posedge clock) begin
-        if (reset) begin
-            m_address <= -1;
-            m_data <= 0'hAA_AA_AA_AA;
-            m_valid <= 1;
-            m_write <= 1;
+    Memory memory;
 
-            s_ready <= 1;
-        end else if (m_ready) begin
-            s_ready <= s_data == 0'hAAAAAAAA || s_valid;
-        end
-    end
+    assign m_address = memory.m_address;
+    assign m_data = memory.m_data;
+    assign m_write = memory.m_write;
+    assign memory.m_ready = m_ready;
+    assign m_valid = memory.m_valid;
+
+    assign memory.s_data = s_data;
+    assign s_ready = memory.s_ready;
+    assign memory.s_valid = s_valid;
+
+    Core core(
+        .clock(clock),
+        .reset(reset),
+        .memory(memory.master)
+    );
 endmodule
