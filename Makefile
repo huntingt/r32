@@ -8,4 +8,4 @@ test: obj_dir/VR32
 	./obj_dir/VR32
 
 clean:
-	rm -r obj_dir/
+	rm -rf obj_dir/
