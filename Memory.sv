@@ -12,7 +12,46 @@ interface Memory;
     logic        s_ready;
     logic        s_valid;
 
+    function void init();
+        m_valid <= 0;
+        s_ready <= 0;
+    endfunction
+
+    /*
+     * Checks to see if the memory bus is ready
+     */
+    function logic ready();
+        // either mot occupied or the transaction will be completed
+        ready = !m_valid || m_ready;
+    endfunction
+
+    function void store(logic [31:0] address, logic [31:0] data);
+        m_address <= address;
+        m_data <= data;
+        m_write <= 1;
+        m_valid <= 1;
+    endfunction
+
+    function void load(logic [31:0] address);
+        m_address <= address;
+        m_write <= 0;
+        m_valid <= 1;
+    endfunction
+
+    /*
+     * This function should be run whenever the bus is not in use
+     */
+    function void nop();
+        m_valid <= 0;
+    endfunction
+
     modport master(
+        import init,
+        import ready,
+        import store,
+        import load,
+        import nop,
+
         output m_address,
         output m_data,
         output m_write,

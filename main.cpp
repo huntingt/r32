@@ -20,9 +20,9 @@ int main(int argc, char** argv, char ** env) {
         cout << test << "...";
         
         auto file = "test/bin/" + test + ".bin";
-        CodeTest tb = CodeTest(file, 0x200, 0x2000);
+        CodeTest tb = CodeTest(file, 0x200, 2048);
         
-        auto [passed, message] = tb.run(1);
+        auto [passed, message] = tb.run(10);
         
         cout << message << endl;
         if (!passed) {

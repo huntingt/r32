@@ -2,7 +2,7 @@
 #TODO: change this makefile so that it does all of the dependency tracking for the system verilog
 TOP=R32
 SV_DIR=obj_dir
-INCLUDES=main.cpp code_test.cpp
+INCLUDES=main.cpp code_test.cpp memory.cpp
 
 test: FORCE
 	verilator -Wall --cc $(TOP).sv --exe $(INCLUDES) -CFLAGS "-std=c++17"

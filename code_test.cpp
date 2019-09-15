@@ -7,29 +7,34 @@
  * "passed_address" location
  */
 CodeTest::CodeTest(std::string file, uint32_t base_address, uint32_t length) {
-    this->base_address = base_address;
-    this->length = length;
+    top = new VR32();
     
-    this->top = new VR32();
-    this->memory = new uint32_t[length];
+    MemoryInterface iBus{
+        .m_address = &top->im_address,
+        .m_data = &top->im_data,
+        .m_write = &top->im_write,
+        .m_ready = &top->im_ready,
+        .m_valid = &top->im_valid,
+        .s_data = &top->is_data,
+        .s_ready = &top->is_ready,
+        .s_valid = &top->is_valid
+    };
 
-    std::ifstream program;
-    program.open(file);
+    MemoryInterface dBus{
+        .m_address = &top->dm_address,
+        .m_data = &top->dm_data,
+        .m_write = &top->dm_write,
+        .m_ready = &top->dm_ready,
+        .m_valid = &top->dm_valid,
+        .s_data = &top->ds_data,
+        .s_ready = &top->ds_ready,
+        .s_valid = &top->ds_valid
+    };
 
-    int index = 0;
-    while(!program.eof())
-    {
-        if (index >= length) {
-            throw std::runtime_error(std::string("program too large for memory @") + std::to_string(index));
-        }
-        
-        uint32_t word;
-        program.read(reinterpret_cast<char*>(&word), sizeof(uint32_t));
-        this->memory[index] = word;
-        index += 1;
-    }
+    imemory = new MemoryController(base_address, length, iBus);
+    imemory->loadBinary(file);
 
-    program.close();
+    dmemory = new MemoryController(0, 2048, dBus);
 }
 
 /*
@@ -40,52 +45,28 @@ CodeTest::CodeTest(std::string file, uint32_t base_address, uint32_t length) {
  */
 std::tuple<bool, std::string> CodeTest::run(int timeout) {
     utils::reset(top);
-    top->m_ready = 1;
+    imemory->init();
+    dmemory->init();
 
-    //from slave
-    top->s_data = 0;
-    top->s_valid = 0;
-
-    //TODO:Implement queue
     for (int i = 0; i < timeout; i++) {
-        // if the output was consumed last cycle
-        if (top->s_valid && top->s_ready) {
-            top->s_valid = false;
-        }
-
-        // check for input
-        if (top->m_valid && top->m_ready) {
-            if(top->m_address == passed_address) {
-                if (top->m_data == passed) {
-                    return std::make_tuple(true, "passed");
+        // check for finish
+        if (top->dm_ready && top->dm_valid) {
+            if (top->dm_address == passed_address) {
+                if (top->dm_data == passed) {
+                    return std::make_tuple(true, \
+                        "passed after " + std::to_string(i) + " cycles");
                 } else {
                     return std::make_tuple(false, \
-                        "failed " + std::to_string(top->m_data) + " code tests");
+                        "failed with " + std::to_string(top->dm_data) + " code errors");
                 }
-            }
-            
-            top->s_valid = true;
-            
-            if (top->m_address % 4 != 0) {
-                return std::make_tuple(false, \
-                    "unaligned addressing not supported " + std::to_string(top->m_address));
-            }
-
-            int index = (top->m_address - base_address) / 4;
-            if (index < 0 || index >= length) {
-                return std::make_tuple(false, \
-                    "memory out of bounds " + std::to_string(top->m_address));
-            }
-
-            if (top->m_write) {
-                memory[index] = top->m_data;
-            } else {    
-                top->s_data = memory[index];
             }
         }
 
-        // if the register can't hold another value, then wait
-        top->m_ready = !top->s_valid;
+        auto iresult = imemory->clock();
+        if (!std::get<0>(iresult)) return iresult;
+
+        auto dresult = dmemory->clock();
+        if (!std::get<0>(dresult)) return dresult;
         
         utils::clock(top, 1);
     }
@@ -96,5 +77,6 @@ std::tuple<bool, std::string> CodeTest::run(int timeout) {
 
 CodeTest::~CodeTest() {
     delete this->top;
-    delete this->memory;
+    delete this->imemory;
+    delete this->dmemory;
 }

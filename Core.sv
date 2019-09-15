@@ -4,24 +4,33 @@
 module Core(
     clock,
     reset,
-    memory
+    instructionBus,
+    dataBus
     );
 
     input clock;
     input reset;
 
-    Memory.master memory;
+    Memory.master instructionBus;
+    Memory.master dataBus;
 
+    logic [31:0] pc;
+    
     always_ff @(posedge clock) begin
         if (reset) begin
-            memory.m_address <= -1;
-            memory.m_data <= 0'hAA_AA_AA_AA;
-            memory.m_valid <= 1;
-            memory.m_write <= 1;
+            instructionBus.init();
+            dataBus.init();
 
-            memory.s_ready <= 1;
-        end else if (memory.m_ready) begin
-            memory.s_ready <= memory.s_data == 0'hAAAAAAAA || memory.s_valid;
+            pc <= 0'h200;
+        end else begin
+            // fetch
+            if (instructionBus.ready()) begin
+                instructionBus.load(pc);
+                pc <= pc + 4;
+            end
+
+            dataBus.store(-1, 0'hAA_AA_AA_AA);
+            dataBus.s_ready <= dataBus.s_data == 0'hAAAAAAAA || dataBus.s_valid;
         end
     end
 endmodule
