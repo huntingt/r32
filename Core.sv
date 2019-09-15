@@ -1,3 +1,5 @@
+`include "Decode.sv"
+
 /*
  * top level module for processor
  */
@@ -31,7 +33,7 @@ module Core(
 
             instructionBus.s_ready <= 1;
             if (instructionBus.readable()) begin
-                $display(instructionBus.read());
+                $display(Decode::decode(instructionBus.read()));
             end
 
             //dataBus.store(-1, 0'hAA_AA_AA_AA);
