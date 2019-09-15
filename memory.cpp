@@ -54,8 +54,6 @@ std::tuple<bool, std::string> MemoryController::clock(){
 
     // check for input
     if (*slave.m_valid && *slave.m_ready) {
-        *slave.s_valid = true;
-        
         if (*slave.m_address % 4 != 0) {
             return std::make_tuple(false, \
                 "unaligned addressing not supported " + std::to_string(*slave.m_address));
@@ -70,12 +68,13 @@ std::tuple<bool, std::string> MemoryController::clock(){
         if (*slave.m_write) {
             memory[index] = *slave.m_data;
         } else {    
+            *slave.s_valid = true;
             *slave.s_data = memory[index];
         }
     }
 
     // if the register can't hold another value, then wait
-    *slave.m_ready = !*slave.s_valid;
+    *slave.m_ready = !*slave.s_valid || *slave.s_ready;
 
     return std::make_tuple(true, "");
 }

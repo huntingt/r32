@@ -45,12 +45,22 @@ interface Memory;
         m_valid <= 0;
     endfunction
 
+    function logic readable();
+        readable = s_ready && s_valid;
+    endfunction
+
+    function logic [31:0] read();
+        read = s_data;
+    endfunction
+
     modport master(
         import init,
         import ready,
         import store,
         import load,
         import nop,
+        import readable,
+        import read,
 
         output m_address,
         output m_data,
